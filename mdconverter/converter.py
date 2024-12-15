@@ -4,8 +4,8 @@ from typing import Optional, Dict, Any, List
 
 class FileConverter:
     def __init__(self, mlm_config: Optional[Dict[str, Any]] = None, 
-                 input_folder: str = "input", 
-                 output_folder: str = "output"):
+                 input_folder: str = None, 
+                 output_folder: str = None):
         if mlm_config:
             self.md = MarkItDown(
                 mlm_client=mlm_config.get('client'),
@@ -14,15 +14,26 @@ class FileConverter:
         else:
             self.md = MarkItDown()
         
-        self.input_folder = input_folder
-        self.output_folder = output_folder
+        # Get the root repository path (two levels up from this file)
+        root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        # Set default folders relative to root path
+        self.input_folder = input_folder or os.path.join(root_path, 'input')
+        self.output_folder = output_folder or os.path.join(root_path, 'output')
         os.makedirs(self.output_folder, exist_ok=True)
 
-    def convert_file(self, file_path: str) -> str:
+    def convert_file(self, file_path: str, output_path: Optional[str] = None) -> str:
         """Convert a file to markdown format."""
         try:
             result = self.md.convert(file_path)
-            return result.text_content
+            content = result.text_content
+            
+            if output_path:
+                os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+            
+            return content
         except Exception as e:
             raise RuntimeError(f"Error converting file: {str(e)}")
 

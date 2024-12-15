@@ -1,30 +1,29 @@
 import click
 from pathlib import Path
 from .converter import FileConverter
+from typing import Optional, Dict
+
+def create_mlm_config(mlm_model: Optional[str]) -> Optional[Dict]:
+    return {'model': mlm_model} if mlm_model else None
 
 @click.command()
-@click.argument('input_file', type=click.Path(exists=True))
-@click.option('--output', '-o', type=click.Path(), help='Output file path')
-@click.option('--mlm-model', help='MLM model to use for image description')
-def main(input_file: str, output: str, mlm_model: str):
-    """Convert various file formats to Markdown."""
-    try:
-        mlm_config = {'model': mlm_model} if mlm_model else None
-        converter = FileConverter(mlm_config)
-        result = converter.convert_file(input_file)
-        
-        if output:
-            output_path = Path(output)
-        else:
-            input_path = Path(input_file)
-            output_path = input_path.with_suffix('.md')
-
-        output_path.write_text(result)
-        click.echo(f"Successfully converted {input_file} to {output_path}")
-        
-    except Exception as e:
-        click.echo(f"Error: {str(e)}", err=True)
-        raise click.Abort()
+@click.argument('input_path', type=click.Path(exists=True), required=False)
+@click.option('-o', '--output', type=click.Path(), help='Output file path')
+@click.option('--mlm-model', help='MLM model name for image descriptions')
+def main(input_path: Optional[str], output: Optional[str], mlm_model: Optional[str]) -> None:
+    """Convert documents to Markdown. If no input path specified, converts all files from ./input to ./output"""
+    converter = FileConverter(mlm_config=create_mlm_config(mlm_model))
+    
+    if input_path is None:
+        converted = converter.convert_folder()
+        click.echo(f"Converted {len(converted)} files to markdown format")
+        for file in converted:
+            click.echo(f"- {file}")
+    else:
+        input_path_obj = Path(input_path)
+        output_path = output or str(input_path_obj.with_suffix('.md'))
+        converter.convert_file(input_path, output_path)
+        click.echo(f"Converted {input_path} to {output_path}")
 
 if __name__ == '__main__':
     main()
