@@ -2,3 +2,4 @@
 *.egg*
 input/*
 output/*
+__pycache__
